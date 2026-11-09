@@ -43,7 +43,7 @@ function Index() {
         alt="Mars eclipsed by the sun"
         width={1280}
         height={1280}
-        className="pointer-events-none absolute left-1/2 top-1/2 w-[min(110vh,95vw)] max-w-none -translate-x-1/2 -translate-y-[55%] opacity-95 mix-blend-screen"
+        className="pointer-events-none absolute left-1/2 top-1/2 w-[min(110vh,95vw)] max-w-none -translate-x-1/2 -translate-y-[55%] opacity-95 mix-blend-screen [mask-image:radial-gradient(circle,black_55%,transparent_72%)]"
       />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,var(--background)_95%)]" />
 
