@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/colony")({
-  validateSearch: (s: Record<string, unknown>) => ({ name: typeof s.name === "string" ? s.name : "Commander" }),
+  validateSearch: (s: Record<string, unknown>) => ({ name: typeof s["name"] === "string" ? s["name"] : "Commander" }),
   head: () => ({
     meta: [
       { title: "Colony Base — ANTARES" },
