@@ -21,11 +21,15 @@ export function SolCrisisAlert({ crisis, onChoose }: { crisis: CrisisId; onChoos
       </CollapsibleContent>
     </Collapsible>}
     <div className="mt-4 grid gap-3 sm:grid-cols-2">
-      {(["A", "B"] as const).map((choice) => <Button key={choice} variant="outline" onClick={() => onChoose(choice)} className="h-auto min-h-16 flex-col items-start whitespace-normal px-4 py-3 text-left">
+      {(["A", "B"] as const).map((choice) => {
+        const option = event.choices[choice];
+        return <Button key={choice} variant="outline" onClick={() => onChoose(choice)} className="h-auto min-h-16 flex-col items-start whitespace-normal px-4 py-3 text-left">
         <span className="text-xs text-ember">Option {choice}</span>
-        <span>{event.choices[choice].label}</span>
-        <span className="text-[10px] font-normal text-muted-foreground">{Object.entries(event.choices[choice].delta).map(([key, value]) => `${key === "oxygen" ? "O₂" : key.charAt(0).toUpperCase() + key.slice(1)} ${value > 0 ? "+" : ""}${value}`).join(" · ")}</span>
-      </Button>)}
+        <span>{option.label}</span>
+        <span className="text-[10px] font-normal text-muted-foreground">{Object.entries(option.delta).map(([key, value]) => `${key === "oxygen" ? "O₂" : key.charAt(0).toUpperCase() + key.slice(1)} ${value > 0 ? "+" : ""}${value}`).join(" · ")}</span>
+          {option.risk && <span className="text-[10px] font-normal text-destructive">{option.risk.note}</span>}
+      </Button>;
+      })}
     </div>
   </div>;
 }

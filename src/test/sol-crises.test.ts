@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { applyCrisisChoice, pendingSolCrisis } from "@/lib/sol-crises";
 import { INITIAL_RESOURCES } from "@/lib/survival";
 
+const EARLY = ["comms", "dust", "radiation", "waterLeak", "thermal"] as const;
+
 describe("Scheduled Sol crises", () => {
   it("triggers Communication Blackout in Sol 1 once", () => {
     expect(pendingSolCrisis(1, [])).toBe("comms");
@@ -24,11 +26,23 @@ describe("Scheduled Sol crises", () => {
   it("triggers Thermal Regulator Malfunction only from Sol 5 and only once", () => {
     expect(pendingSolCrisis(4, ["comms", "dust", "radiation", "waterLeak"])).toBeNull();
     expect(pendingSolCrisis(5, ["comms", "dust", "radiation", "waterLeak"])).toBe("thermal");
-    expect(pendingSolCrisis(7, ["comms", "dust", "radiation", "waterLeak", "thermal"])).toBeNull();
+    expect(pendingSolCrisis(5, [...EARLY])).toBeNull();
+  });
+  it("triggers System Telemetry Glitch only from Sol 6 and only once", () => {
+    expect(pendingSolCrisis(5, [...EARLY])).toBeNull();
+    expect(pendingSolCrisis(6, [...EARLY])).toBe("glitch");
+    expect(pendingSolCrisis(6, [...EARLY, "glitch"])).toBeNull();
+  });
+  it("triggers Power Grid Overload only from Sol 7 and only once", () => {
+    expect(pendingSolCrisis(6, [...EARLY, "glitch"])).toBeNull();
+    expect(pendingSolCrisis(7, [...EARLY, "glitch"])).toBe("grid");
+    expect(pendingSolCrisis(7, [...EARLY, "glitch", "grid"])).toBeNull();
   });
   it("queues overdue crises chronologically", () => {
     expect(pendingSolCrisis(5, ["comms", "dust"])).toBe("radiation");
     expect(pendingSolCrisis(5, ["comms", "dust", "radiation"])).toBe("waterLeak");
+    expect(pendingSolCrisis(7, [...EARLY])).toBe("glitch");
+    expect(pendingSolCrisis(7, [...EARLY, "glitch"])).toBe("grid");
   });
   it.each([
     ["radiation", "A", { oxygen: 98, water: 98, power: 82, shield: 100 }],
@@ -37,6 +51,10 @@ describe("Scheduled Sol crises", () => {
     ["waterLeak", "B", { oxygen: 97, water: 88, power: 96, shield: 98 }],
     ["thermal", "A", { oxygen: 97, water: 97, power: 92, shield: 96 }],
     ["thermal", "B", { oxygen: 99, water: 98, power: 80, shield: 98 }],
+    ["glitch", "A", { oxygen: 99, water: 99, power: 88, shield: 99 }],
+    ["glitch", "B", { oxygen: 96, water: 97, power: 94, shield: 92 }],
+    ["grid", "A", { oxygen: 99, water: 98, power: 90, shield: 98 }],
+    ["grid", "B", { oxygen: 99, water: 99, power: 92, shield: 82 }],
   ] as const)("applies %s option %s resource trade-offs", (crisis, choice, expected) => {
     expect(applyCrisisChoice(INITIAL_RESOURCES, crisis, choice)).toEqual(expected);
   });
@@ -60,5 +78,14 @@ describe("Scheduled Sol crises", () => {
   });
   it("never makes resources negative", () => {
     expect(applyCrisisChoice({ oxygen: 1, water: 1, power: 1, shield: 1 }, "dust", "B")).toEqual({ oxygen: 0, water: 0, power: 0, shield: 0 });
+  });
+  it("collapses the grid when max capacity is pushed on a strained grid", () => {
+    expect(applyCrisisChoice({ ...INITIAL_RESOURCES, power: 29 }, "grid", "B")).toEqual({ oxygen: 99, water: 99, power: 0, shield: 82 });
+  });
+  it("holds the grid when max capacity is pushed with enough reserve", () => {
+    expect(applyCrisisChoice({ ...INITIAL_RESOURCES, power: 30 }, "grid", "B").power).toBe(22);
+  });
+  it("never collapses the grid when loads are shed", () => {
+    expect(applyCrisisChoice({ ...INITIAL_RESOURCES, power: 29 }, "grid", "A").power).toBe(19);
   });
 });

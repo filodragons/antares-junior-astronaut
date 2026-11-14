@@ -35,3 +35,9 @@
 - [x] Add radiation, water leak, and thermal malfunction choices and resource trade-offs.
 - [x] Add a collapsible NASA OSDR science log with a verified study link.
 - [x] Test sequencing and choices; verify Sol 3–5 and the science log on desktop/mobile.
+
+# Sol 6–7 crises
+
+- [x] Add System Telemetry Glitch and Power Grid Overload choices and resource trade-offs.
+- [x] Make the risky max-capacity choice collapse the grid on a strained reserve.
+- [x] Test sequencing and choices; verify Sol 6–7 endings and the science log on desktop/mobile.
