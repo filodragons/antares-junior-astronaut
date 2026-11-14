@@ -29,3 +29,9 @@
 - [x] Add Communication Blackout and Dust Storm choices above command controls.
 - [x] Trigger each crisis in its Sol and update HUD resources on selection.
 - [x] Test every choice and verify the full entry-to-Sol-2 flow.
+
+# Sol 3–5 crises
+
+- [x] Add radiation, water leak, and thermal malfunction choices and resource trade-offs.
+- [x] Add a collapsible NASA OSDR science log with a verified study link.
+- [x] Test sequencing and choices; verify Sol 3–5 and the science log on desktop/mobile.
