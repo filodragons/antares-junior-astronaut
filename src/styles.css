@@ -174,3 +174,13 @@
 @layer base { body { font-family: var(--font-sans); } }
 @keyframes drift { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
 @utility animate-drift { animation: drift 240s linear infinite; }
+
+@keyframes sol-fade {
+  0% { opacity: 0; transform: translateY(8px); }
+  15%, 65% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-6px); }
+}
+.sol-transition { animation: sol-fade 2.4s ease-in-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .sol-transition { animation: none; }
+}

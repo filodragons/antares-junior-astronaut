@@ -10,3 +10,10 @@
 - [x] Exact briefing with dismissal and tap sound.
 - [x] Four telemetry cards and timed seven-Sol tracker.
 - [x] Verify entry, briefing, timing, and mobile layout.
+
+# Command additions
+
+- [x] Add a centered Sol completion fade without changing existing layout.
+- [x] Add a bottom command deck with working survival toggles.
+- [x] Add an instant crisis test and recovery action.
+- [x] Verify controls, crisis recovery, Sol transitions, and mobile layout.

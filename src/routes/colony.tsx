@@ -1,11 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Activity, ArrowLeft, Check, Circle, Droplets, Wind, Zap, ShieldCheck, Radio, BookOpen, Orbit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { MISSION_SOLS, missionClock, playMissionTap } from "@/lib/mission";
 import landscape from "@/assets/colony-landscape.jpg";
 import badge from "@/assets/nasa-space-apps.png.asset.json";
+import { CommandDeck } from "@/components/command-deck";
+import { advanceResources, INITIAL_COMMANDS, INITIAL_RESOURCES, triggerTestCrisis, type Commands } from "@/lib/survival";
 
 export const Route = createFileRoute("/colony")({
   validateSearch: (s: Record<string, unknown>) => ({ name: typeof s["name"] === "string" ? s["name"] : "Commander" }),
@@ -24,11 +26,11 @@ export const Route = createFileRoute("/colony")({
 
 const briefing = "Welcome to ANTARES Mission Control, Commander! Your mission is to keep your Mars colony and your life safe over the next 7 Martian Sols. Each Martian Sol equals 1 minute of real time. Monitor your core resources (Oxygen, Water, Power, and Radiation Shield) and make the right daily command decisions. Beware of unexpected crises! Good luck, Commander!";
 const resources = [
-  { label: "Oxygen / MOXIE", detail: "O₂ GENERATOR", Icon: Wind, color: "text-telemetry", bar: "bg-telemetry" },
-  { label: "Water", detail: "H₂O RESERVES", Icon: Droplets, color: "text-water", bar: "bg-water" },
-  { label: "Power", detail: "ENERGY STORAGE", Icon: Zap, color: "text-power", bar: "bg-power" },
-  { label: "Radiation Shield", detail: "HABITAT INTEGRITY", Icon: ShieldCheck, color: "text-ember", bar: "bg-ember" },
-];
+  { key: "oxygen", label: "Oxygen / MOXIE", detail: "O₂ GENERATOR", Icon: Wind, color: "text-telemetry", bar: "bg-telemetry" },
+  { key: "water", label: "Water", detail: "H₂O RESERVES", Icon: Droplets, color: "text-water", bar: "bg-water" },
+  { key: "power", label: "Power", detail: "ENERGY STORAGE", Icon: Zap, color: "text-power", bar: "bg-power" },
+  { key: "shield", label: "Radiation Shield", detail: "HABITAT INTEGRITY", Icon: ShieldCheck, color: "text-ember", bar: "bg-ember" },
+] as const;
 
 function Colony() {
   const { name } = Route.useSearch();
@@ -36,6 +38,34 @@ function Colony() {
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const clock = missionClock(elapsed);
+  const [commands, setCommands] = useState(INITIAL_COMMANDS);
+  const [telemetry, setTelemetry] = useState(INITIAL_RESOURCES);
+  const [crisis, setCrisis] = useState(false);
+  const [transitionSol, setTransitionSol] = useState<number | null>(null);
+  const lastElapsed = useRef(0);
+  const lastCompleted = useRef(0);
+
+  useEffect(() => {
+    const bounded = Math.min(elapsed, 420);
+    const delta = bounded - lastElapsed.current;
+    if (delta <= 0) return;
+    lastElapsed.current = bounded;
+    setTelemetry((current) => advanceResources(current, commands, delta, crisis));
+  }, [elapsed, commands, crisis]);
+
+  useEffect(() => {
+    if (clock.completed === 0 || clock.completed <= lastCompleted.current) return;
+    lastCompleted.current = clock.completed;
+    setTransitionSol(clock.completed);
+    const timeout = window.setTimeout(() => setTransitionSol(null), 2400);
+    return () => window.clearTimeout(timeout);
+  }, [clock.completed]);
+
+  const toggleCommand = (key: keyof Commands) => {
+    if (startedAt === null || clock.finished) return;
+    playMissionTap();
+    setCommands((current) => ({ ...current, [key]: !current[key] }));
+  };
 
   useEffect(() => {
     if (startedAt === null || clock.finished) return;
@@ -90,12 +120,12 @@ function Colony() {
         <aside className="border-t border-border bg-background p-6 lg:border-l lg:border-t-0" aria-label="Mission telemetry">
           <div className="mb-5 flex items-center justify-between"><h2 className="text-sm uppercase tracking-widest">Core resources</h2><Activity className="h-4 w-4 text-ember" /></div>
           <div className="grid grid-cols-2 gap-3">
-            {resources.map(({ label, detail, Icon, color, bar }) => (
+            {resources.map(({ key, label, detail, Icon, color, bar }) => (
               <article key={label} className="min-w-0 rounded-md border border-border bg-card/60 p-4">
                 <Icon className={`mb-4 h-5 w-5 ${color}`} />
                 <h3 className="min-h-10 text-sm leading-5">{label}</h3>
-                <p className="mt-1 text-3xl tabular-nums">100<span className="text-sm text-muted-foreground">%</span></p>
-                <div role="meter" aria-label={label} aria-valuenow={100} aria-valuemin={0} aria-valuemax={100} className="my-3 h-1 w-full overflow-hidden rounded-full bg-muted"><div className={`h-full w-full ${bar}`} /></div>
+                <p className="mt-1 text-3xl tabular-nums">{Math.round(telemetry[key])}<span className="text-sm text-muted-foreground">%</span></p>
+                <div role="meter" aria-label={label} aria-valuenow={Math.round(telemetry[key])} aria-valuemin={0} aria-valuemax={100} className="my-3 h-1 w-full overflow-hidden rounded-full bg-muted"><svg viewBox="0 0 100 1" preserveAspectRatio="none" className={`h-full w-full ${color}`} aria-hidden="true"><rect width={telemetry[key]} height="1" fill="currentColor" /></svg></div>
                 <p className="text-[9px] text-muted-foreground">{detail}</p>
               </article>
             ))}
@@ -113,6 +143,20 @@ function Colony() {
           </section>
         </aside>
       </div>
+
+      <CommandDeck commands={commands} disabled={startedAt === null || clock.finished} crisis={crisis} onToggle={toggleCommand} onTest={() => {
+        if (startedAt === null || clock.finished || crisis) return;
+        playMissionTap();
+        setTelemetry(triggerTestCrisis);
+        setCrisis(true);
+      }} onResolve={() => { playMissionTap(); setCrisis(false); }} />
+
+      {transitionSol !== null && <div key={transitionSol} role="status" aria-live="polite" className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center">
+        <div className="sol-transition border-y border-primary/40 bg-background/90 px-10 py-7 text-center shadow-[var(--mission-shadow)]">
+          <Check className="mx-auto mb-3 h-7 w-7 text-telemetry" />
+          <p className="text-2xl font-semibold text-foreground">Sol {transitionSol} completed</p>
+        </div>
+      </div>}
 
       <Dialog open={briefingOpen} onOpenChange={(open) => { if (open) setBriefingOpen(true); }}>
         <DialogContent className="w-[calc(100%-32px)] max-w-xl rounded-md border-primary/40 bg-background p-7 shadow-[var(--mission-shadow)] [&>button]:hidden" onEscapeKeyDown={(e) => e.preventDefault()} onPointerDownOutside={(e) => e.preventDefault()}>

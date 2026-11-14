@@ -30,3 +30,4 @@ use the editor.
 <!-- LOVABLE:END -->
 
 - Keep mission timing in the pure browser-safe mission module and start its clock after briefing acknowledgement; this makes Sol boundaries testable without storing session-only game state.
+- Keep survival calculations in a pure browser-safe module and append command controls after the existing dashboard; this isolates testable resource trade-offs without repositioning the header or HUD.
