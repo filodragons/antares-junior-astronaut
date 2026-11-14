@@ -35,4 +35,4 @@ use the editor.
 - Unlock a shared browser audio context on briefing acknowledgement; this supports later crisis and ending sounds without autoplay assumptions.
 - Define scheduled Sol crises and choice resource deltas in a pure module, rendering them in the command deck alert slot; this keeps event sequencing testable and preserves the HUD layout.
 - Keep crisis failure conditions (a resource threshold that can zero a resource) as data on the choice inside the pure crisis module; this keeps risky endings testable without touching the alert UI.
-- Keep the danger threshold and risky-choice ending rules as pure functions in the crisis module, checked only right after a choice is applied; this keeps game-over rules testable.
+- Keep content-based tactical evaluation and the inclusive danger threshold in the pure crisis module; compare choice trade-offs against pre-choice reserves, check every telemetry update, and require all seven decisions before final evaluation so button letters and stale resources cannot determine endings.

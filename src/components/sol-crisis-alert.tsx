@@ -1,7 +1,7 @@
 import { AlertTriangle, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { SOL_CRISES, type CrisisId, type ChoiceId } from "@/lib/sol-crises";
+import { SOL_CRISES, choiceApproach, type CrisisId, type ChoiceId } from "@/lib/sol-crises";
 
 export function SolCrisisAlert({ crisis, onChoose }: { crisis: CrisisId; onChoose: (choice: ChoiceId) => void }) {
   const event = SOL_CRISES[crisis];
@@ -26,6 +26,7 @@ export function SolCrisisAlert({ crisis, onChoose }: { crisis: CrisisId; onChoos
         return <Button key={choice} variant="outline" onClick={() => onChoose(choice)} className="h-auto min-h-16 flex-col items-start whitespace-normal px-4 py-3 text-left">
         <span className="text-xs text-ember">Option {choice}</span>
         <span>{option.label}</span>
+         <span className="text-[10px] font-normal text-muted-foreground">{choiceApproach(crisis, choice)}</span>
         <span className="text-[10px] font-normal text-muted-foreground">{Object.entries(option.delta).map(([key, value]) => `${key === "oxygen" ? "O₂" : key.charAt(0).toUpperCase() + key.slice(1)} ${value > 0 ? "+" : ""}${value}`).join(" · ")}</span>
           {option.risk && <span className="text-[10px] font-normal text-destructive">{option.risk.note}</span>}
       </Button>;

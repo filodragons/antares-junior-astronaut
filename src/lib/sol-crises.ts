@@ -17,8 +17,8 @@ export const SOL_CRISES = {
     title: "Dust Storm",
     warning: "Solar panels blocked by Martian dust. Power generation is offline. Clear the arrays before reserves run low.",
     choices: {
-      A: { label: "Deploy slow automated sweepers", delta: { oxygen: -2, water: -1, power: -8, shield: -2 }, risk: null },
-      B: { label: "Manual high-power thermal clear", delta: { oxygen: -5, water: -4, power: -22, shield: -5 }, risk: null },
+      A: { label: "Manual high-power thermal clear", delta: { oxygen: -5, water: -4, power: -22, shield: -5 }, risk: null },
+      B: { label: "Deploy slow automated sweepers", delta: { oxygen: -2, water: -1, power: -8, shield: -2 }, risk: null },
     },
   },
   radiation: {
@@ -39,8 +39,8 @@ export const SOL_CRISES = {
     title: "Water Recycling Leak",
     warning: "A breach in the recycling loop is causing critical water loss. Secure the supply before the colony's reserves run dry.",
     choices: {
-      A: { label: "Isolate and seal primary pipe", delta: { oxygen: -2, water: -5, power: -10, shield: -1 }, risk: null },
-      B: { label: "Reroute secondary graywater reserves", delta: { oxygen: -3, water: -12, power: -4, shield: -2 }, risk: null },
+      A: { label: "Reroute secondary graywater reserves", delta: { oxygen: -3, water: -12, power: -4, shield: -2 }, risk: null },
+      B: { label: "Isolate and seal primary pipe", delta: { oxygen: -2, water: -5, power: -10, shield: -1 }, risk: null },
     },
   },
   thermal: {
@@ -57,8 +57,8 @@ export const SOL_CRISES = {
     title: "System Telemetry Glitch",
     warning: "Sensor arrays are reporting false warnings across the habitat. Telemetry cannot be trusted — verify the data before the crew acts on phantom alarms.",
     choices: {
-      A: { label: "Run deep diagnostic scan", delta: { oxygen: -1, water: -1, power: -12, shield: -1 }, risk: null },
-      B: { label: "Hard-reset mainframe systems", delta: { oxygen: -4, water: -3, power: -6, shield: -8 }, risk: null },
+      A: { label: "Hard-reset mainframe systems", delta: { oxygen: -4, water: -3, power: -6, shield: -8 }, risk: null },
+      B: { label: "Run deep diagnostic scan", delta: { oxygen: -1, water: -1, power: -12, shield: -1 }, risk: null },
     },
   },
   grid: {
@@ -94,7 +94,6 @@ export function applyCrisisChoice(resources: Resources, crisis: CrisisId, choice
 }
 
 export const DANGER_THRESHOLD = 40;
-export const RISKY_LIMIT = 3;
 const RESOURCE_LABELS: Record<keyof Resources, string> = { oxygen: "Oxygen (MOXIE)", water: "Water", power: "Power", shield: "Radiation Shield" };
 
 /** First resource at or below the 40% danger threshold, with a failure reason. */
@@ -104,7 +103,38 @@ export function dangerBreach(resources: Resources): { resource: keyof Resources;
   return { resource: key, reason: `${RESOURCE_LABELS[key]} fell to ${Math.round(resources[key])}% — at or below the ${DANGER_THRESHOLD}% danger threshold.` };
 }
 
-/** Final Sol 7 ending from the Option B counter: more than RISKY_LIMIT risky choices causes structural failure. */
-export function riskyEnding(riskyChoices: number): "win" | "risky" {
-  return riskyChoices > RISKY_LIMIT ? "risky" : "win";
+export type DecisionRecord = { crisis: CrisisId; strategy: string; before: Resources; after: Resources; wisdom: number };
+export const BALANCED_WISDOM = 70;
+
+/** Content, not button position, defines the strain imposed on habitat systems. */
+export function strategyStrain(label: string): number {
+  return /emergency|high-power|pharmacological|graywater|Overclock|Hard-reset|maximum capacity/i.test(label) ? 8 : 0;
+}
+
+export function choiceApproach(crisis: CrisisId, choice: ChoiceId): string {
+  return strategyStrain(SOL_CRISES[crisis].choices[choice].label) > 0 ? "Rapid intervention · Higher system strain" : "Measured intervention · Lower system strain";
+}
+
+/** Scarce reserves carry more weight; restoration helps only up to capacity. */
+function strategicUtility(before: Resources, after: Resources, label: string): number {
+  if (dangerBreach(after)) return -1000;
+  return (Object.keys(before) as (keyof Resources)[]).reduce((total, key) => {
+    const scarcity = 60 / Math.max(5, before[key] - DANGER_THRESHOLD);
+    return total + (after[key] - before[key]) * scarcity;
+  }, -strategyStrain(label));
+}
+
+export function evaluateDecision(before: Resources, crisis: CrisisId, choice: ChoiceId): DecisionRecord {
+  const selected = SOL_CRISES[crisis].choices[choice];
+  const after = applyCrisisChoice(before, crisis, choice);
+  const utility = strategicUtility(before, after, selected.label);
+  const best = Math.max(...(["A", "B"] as const).map((id) => strategicUtility(before, applyCrisisChoice(before, crisis, id), SOL_CRISES[crisis].choices[id].label)));
+  return { crisis, strategy: selected.label, before: { ...before }, after, wisdom: Math.max(0, Math.round(100 - 3 * (best - utility))) };
+}
+
+export function tacticalEnding(decisions: DecisionRecord[]): { outcome: "win" | "fail"; wisdom: number; weakest: DecisionRecord | null } {
+  const wisdom = decisions.length ? Math.round(decisions.reduce((sum, record) => sum + record.wisdom, 0) / decisions.length) : 0;
+  const complete = new Set(decisions.map((record) => record.crisis)).size === Object.keys(SOL_CRISES).length;
+  const weakest = decisions.reduce<DecisionRecord | null>((lowest, record) => lowest === null || record.wisdom < lowest.wisdom ? record : lowest, null);
+  return { outcome: complete && wisdom >= BALANCED_WISDOM ? "win" : "fail", wisdom, weakest };
 }

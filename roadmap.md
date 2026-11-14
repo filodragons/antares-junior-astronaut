@@ -41,3 +41,9 @@
 - [x] Add System Telemetry Glitch and Power Grid Overload choices and resource trade-offs.
 - [x] Make the risky max-capacity choice collapse the grid on a strained reserve.
 - [x] Test sequencing and choices; verify Sol 6–7 endings and the science log on desktop/mobile.
+
+# Tactical evaluation
+
+- [ ] Vary crisis option roles and evaluate content against current reserves.
+- [ ] Enforce immediate 40% failure on all resource changes and evaluate all seven decisions.
+- [ ] Test strategic scoring and verify full missions and action lockout.
