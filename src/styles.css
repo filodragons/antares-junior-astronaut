@@ -35,6 +35,9 @@
   --color-glow: var(--glow);
   --color-ember: var(--ember);
   --color-logo: var(--logo);
+  --color-telemetry: var(--telemetry);
+  --color-water: var(--water);
+  --color-power: var(--power);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -79,6 +82,11 @@
 
 :root {
   --logo: oklch(1 0 0);
+  --telemetry: oklch(0.8 0.12 165);
+  --water: oklch(0.8 0.1 220);
+  --power: oklch(0.85 0.14 85);
+  --mission-shadow: 0 0 32px oklch(0.55 0.2 35 / 20%);
+  --mission-overlay: linear-gradient(180deg, var(--background), transparent 45%, var(--background));
   --radius: 0.75rem;
   --background: oklch(0.13 0.03 30);
   --foreground: oklch(0.97 0.01 60);
