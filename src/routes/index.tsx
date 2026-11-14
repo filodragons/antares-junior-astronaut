@@ -1,6 +1,7 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Globe } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import mars from "@/assets/mars.jpg";
 
 export const Route = createFileRoute("/")({
@@ -16,14 +17,6 @@ export const Route = createFileRoute("/")({
   }),
   component: Index,
 });
-
-const nav = ["Home", "About Us", "Colonies", "The Program", "Planets"];
-const stats = [
-  ["Moons", "Phobos · Deimos"],
-  ["Radius", "3,390 km"],
-  ["Distance from Sun", "227.9 million km"],
-  ["Orbital Period", "687 days"],
-];
 
 function Index() {
   const [name, setName] = useState("");
@@ -48,26 +41,18 @@ function Index() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,var(--background)_95%)]" />
 
       <header className="relative z-10 flex items-center justify-between px-6 py-6 md:px-12">
-        <div className="text-2xl font-bold tracking-[0.3em]">
-          <span className="text-primary">ANT</span>ARES
+        <div className="text-2xl font-bold tracking-[0.3em] text-logo">
+          ANTARES
         </div>
-        <nav className="hidden gap-8 text-xs font-semibold uppercase tracking-widest md:flex">
-          {nav.map((n, i) => (
-            <a key={n} href="#" className={i === 0 ? "text-primary" : "hover:text-primary transition-colors"}>
-              {n}
-            </a>
-          ))}
+        <nav aria-label="Main navigation" className="flex items-center gap-4 text-xs font-semibold md:gap-8">
+          <Button asChild variant="link" className="h-auto p-0 text-xs tracking-widest">
+            <Link to="/">HOME</Link>
+          </Button>
+          <span className="inline-flex items-center gap-2">
+            <Globe aria-hidden="true" className="h-4 w-4" /> Language
+          </span>
         </nav>
       </header>
-
-      <aside className="absolute right-12 top-1/2 z-10 hidden -translate-y-1/2 space-y-6 text-center lg:block">
-        {stats.map(([k, v]) => (
-          <div key={k}>
-            <div className="font-display text-xl uppercase tracking-wider">{k}</div>
-            <div className="text-xs text-muted-foreground">{v}</div>
-          </div>
-        ))}
-      </aside>
 
       <section className="relative z-10 flex min-h-[calc(100vh-88px)] flex-col items-center justify-center px-6 pb-16 text-center">
         <p className="mb-4 text-xs uppercase tracking-[0.5em] text-ember">Mission Trainer · Sol 001</p>

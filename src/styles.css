@@ -34,6 +34,7 @@
   --font-display: "Marcellus", serif;
   --color-glow: var(--glow);
   --color-ember: var(--ember);
+  --color-logo: var(--logo);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -77,6 +78,7 @@
 }
 
 :root {
+  --logo: oklch(1 0 0);
   --radius: 0.75rem;
   --background: oklch(0.13 0.03 30);
   --foreground: oklch(0.97 0.01 60);
@@ -115,6 +117,7 @@
 }
 
 .dark {
+  --logo: oklch(1 0 0);
   --background: oklch(0.129 0.042 264.695);
   --foreground: oklch(0.984 0.003 247.858);
   --card: oklch(0.208 0.042 265.755);
