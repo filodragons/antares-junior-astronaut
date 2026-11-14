@@ -92,3 +92,19 @@ export function applyCrisisChoice(resources: Resources, crisis: CrisisId, choice
   if (risk !== null && resources[risk.resource] < risk.threshold) next[risk.resource] = 0;
   return next;
 }
+
+export const DANGER_THRESHOLD = 40;
+export const RISKY_LIMIT = 3;
+const RESOURCE_LABELS: Record<keyof Resources, string> = { oxygen: "Oxygen (MOXIE)", water: "Water", power: "Power", shield: "Radiation Shield" };
+
+/** First resource at or below the 40% danger threshold, with a failure reason. */
+export function dangerBreach(resources: Resources): { resource: keyof Resources; reason: string } | null {
+  const key = (Object.keys(resources) as (keyof Resources)[]).find((k) => resources[k] <= DANGER_THRESHOLD);
+  if (!key) return null;
+  return { resource: key, reason: `${RESOURCE_LABELS[key]} fell to ${Math.round(resources[key])}% — at or below the ${DANGER_THRESHOLD}% danger threshold.` };
+}
+
+/** Final Sol 7 ending from the Option B counter: more than RISKY_LIMIT risky choices causes structural failure. */
+export function riskyEnding(riskyChoices: number): "win" | "risky" {
+  return riskyChoices > RISKY_LIMIT ? "risky" : "win";
+}

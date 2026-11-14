@@ -11,7 +11,7 @@ import { advanceResources, hasDepletedResource, missionOutcome, INITIAL_COMMANDS
 import { prepareMissionAudio, playMissionSound } from "@/lib/mission-audio";
 import { MissionEnding } from "@/components/mission-ending";
 import { SolCrisisAlert } from "@/components/sol-crisis-alert";
-import { applyCrisisChoice, pendingSolCrisis, type CrisisId, type ChoiceId } from "@/lib/sol-crises";
+import { applyCrisisChoice, dangerBreach, riskyEnding, pendingSolCrisis, type CrisisId, type ChoiceId } from "@/lib/sol-crises";
 
 export const Route = createFileRoute("/colony")({
   validateSearch: (s: Record<string, unknown>) => ({ name: typeof s["name"] === "string" ? s["name"] : "Commander" }),
@@ -51,6 +51,9 @@ function Colony() {
   const [appliedElapsed, setAppliedElapsed] = useState(0);
   const [depleted, setDepleted] = useState(false);
   const [outcome, setOutcome] = useState<"win" | "fail" | null>(null);
+  const [endingReason, setEndingReason] = useState<{ title: string; text: string } | null>(null);
+  const [riskyChoices, setRiskyChoices] = useState(0);
+  const gameOver = outcome !== null;
   const [endingOpen, setEndingOpen] = useState(false);
   const [activeSolCrisis, setActiveSolCrisis] = useState<CrisisId | null>(null);
   const [resolvedCrises, setResolvedCrises] = useState<CrisisId[]>([]);
@@ -58,10 +61,10 @@ function Colony() {
   const dustActive = crisis || activeSolCrisis === "dust";
 
   useEffect(() => {
-    if (startedAt === null || clock.finished || activeSolCrisis !== null) return;
+    if (startedAt === null || clock.finished || gameOver || activeSolCrisis !== null) return;
     const next = pendingSolCrisis(clock.currentSol, resolvedCrises);
     if (next !== null) setActiveSolCrisis(next);
-  }, [startedAt, clock.finished, clock.currentSol, activeSolCrisis, resolvedCrises]);
+  }, [startedAt, clock.finished, gameOver, clock.currentSol, activeSolCrisis, resolvedCrises]);
 
   useEffect(() => {
     if (activeSolCrisis === null || briefingOpen) return;
@@ -69,11 +72,21 @@ function Colony() {
   }, [activeSolCrisis, briefingOpen]);
 
   const chooseCrisis = (choice: ChoiceId) => {
-    if (activeSolCrisis === null || clock.finished) return;
+    if (activeSolCrisis === null || clock.finished || gameOver) return;
     playMissionTap();
-    setTelemetry((current) => applyCrisisChoice(current, activeSolCrisis, choice));
+    const next = applyCrisisChoice(telemetry, activeSolCrisis, choice);
+    setTelemetry(next);
     setResolvedCrises((current) => [...current, activeSolCrisis]);
     setActiveSolCrisis(null);
+    if (choice === "B") setRiskyChoices((n) => n + 1);
+    const breach = dangerBreach(next);
+    if (breach) {
+      setOutcome("fail");
+      setEndingReason({ title: "Danger threshold breached", text: breach.reason });
+      setEndingOpen(true);
+      setCrisis(false);
+      playMissionSound("fail");
+    }
   };
 
   useEffect(() => {
@@ -82,21 +95,25 @@ function Colony() {
 
   useEffect(() => {
     if (!clock.finished || appliedElapsed < 420 || outcome !== null) return;
-    const result = missionOutcome(clock.completed, telemetry, depleted);
-    if (!result) return;
+    const base = missionOutcome(clock.completed, telemetry, depleted);
+    if (!base) return;
+    const result = base === "win" && riskyEnding(riskyChoices) === "risky" ? "fail" : base;
+    setEndingReason(base === "fail" ? null : result === "fail"
+      ? { title: "Structural failure", text: `${riskyChoices} risky Option B choices overstressed the habitat. The colony structure gave way on Sol 7.` }
+      : { title: "Colony secured", text: `Balanced command: only ${riskyChoices} risky choice${riskyChoices === 1 ? "" : "s"} across seven Sols kept the colony stable.` });
     setOutcome(result);
     setEndingOpen(true);
     setCrisis(false);
     setActiveSolCrisis(null);
     playMissionSound(result);
-  }, [clock.finished, clock.completed, appliedElapsed, telemetry, depleted, outcome]);
+  }, [clock.finished, clock.completed, appliedElapsed, telemetry, depleted, outcome, riskyChoices]);
 
   useEffect(() => {
-    if ((!crisis && activeSolCrisis === null) || clock.finished) return;
+    if ((!crisis && activeSolCrisis === null) || clock.finished || gameOver) return;
     playMissionSound("warning");
     const warning = window.setInterval(() => playMissionSound("warning"), 5000);
     return () => window.clearInterval(warning);
-  }, [crisis, activeSolCrisis, clock.finished]);
+  }, [crisis, activeSolCrisis, clock.finished, gameOver]);
 
   useEffect(() => {
     const bounded = Math.min(elapsed, 420);
@@ -116,16 +133,16 @@ function Colony() {
   }, [clock.completed]);
 
   const toggleCommand = (key: keyof Commands) => {
-    if (startedAt === null || clock.finished) return;
+    if (startedAt === null || clock.finished || gameOver) return;
     playMissionTap();
     setCommands((current) => ({ ...current, [key]: !current[key] }));
   };
 
   useEffect(() => {
-    if (startedAt === null || clock.finished) return;
+    if (startedAt === null || clock.finished || gameOver) return;
     const interval = window.setInterval(() => setElapsed(Math.floor((Date.now() - startedAt) / 1000)), 250);
     return () => window.clearInterval(interval);
-  }, [startedAt, clock.finished]);
+  }, [startedAt, clock.finished, gameOver]);
 
   const acknowledge = () => {
     prepareMissionAudio();
@@ -199,8 +216,8 @@ function Colony() {
         </aside>
       </div>
 
-      <CommandDeck commands={commands} disabled={startedAt === null || clock.finished} crisis={crisis} alert={activeSolCrisis !== null && !clock.finished ? <div ref={alertRef}><SolCrisisAlert crisis={activeSolCrisis} onChoose={chooseCrisis} /></div> : null} onToggle={toggleCommand} onTest={() => {
-        if (startedAt === null || clock.finished || crisis) return;
+      <CommandDeck commands={commands} disabled={startedAt === null || clock.finished || gameOver} crisis={crisis} alert={activeSolCrisis !== null && !clock.finished && !gameOver ? <div ref={alertRef}><SolCrisisAlert crisis={activeSolCrisis} onChoose={chooseCrisis} /></div> : null} onToggle={toggleCommand} onTest={() => {
+        if (startedAt === null || clock.finished || gameOver || crisis) return;
         playMissionTap();
         setTelemetry(triggerTestCrisis);
         setCrisis(true);
@@ -213,7 +230,7 @@ function Colony() {
         </div>
       </div>}
 
-      {outcome !== null && <MissionEnding outcome={outcome} name={name} open={endingOpen} onClose={() => setEndingOpen(false)} />}
+      {outcome !== null && <MissionEnding outcome={outcome} name={name} reason={endingReason} riskyChoices={riskyChoices} open={endingOpen} onClose={() => setEndingOpen(false)} />}
 
       <Dialog open={briefingOpen} onOpenChange={(open) => { if (open) setBriefingOpen(true); }}>
         <DialogContent className="w-[calc(100%-32px)] max-w-xl rounded-md border-primary/40 bg-background p-7 shadow-[var(--mission-shadow)] [&>button]:hidden" onEscapeKeyDown={(e) => e.preventDefault()} onPointerDownOutside={(e) => e.preventDefault()}>

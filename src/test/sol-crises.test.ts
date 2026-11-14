@@ -89,3 +89,10 @@ describe("Scheduled Sol crises", () => {
     expect(applyCrisisChoice({ ...INITIAL_RESOURCES, power: 29 }, "grid", "A").power).toBe(19);
   });
 });
+
+import { dangerBreach as _db, riskyEnding as _re } from "@/lib/sol-crises";
+describe("danger threshold and risky ending", () => {
+  it("triggers game over at exactly 40%", () => { expect(_db({ oxygen: 80, water: 40, power: 90, shield: 90 })?.resource).toBe("water"); });
+  it("is safe at 41%", () => { expect(_db({ oxygen: 41, water: 41, power: 41, shield: 41 })).toBeNull(); });
+  it("3 risky choices is balanced, 4 is structural failure", () => { expect(_re(3)).toBe("win"); expect(_re(4)).toBe("risky"); });
+});
