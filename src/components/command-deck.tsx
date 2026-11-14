@@ -23,6 +23,10 @@ export function CommandDeck({ commands, disabled, crisis, onToggle, onTest, onRe
         <h2 className="text-sm uppercase tracking-widest">Command deck</h2>
         <span className="text-xs text-muted-foreground">{disabled ? "Standby" : "Daily operations"}</span>
       </div>
+      {crisis && <div role="alert" className="crisis-warning mb-4 flex flex-wrap items-center justify-between gap-4 border-l-2 border-destructive bg-destructive/20 px-4 py-3 backdrop-blur-xl">
+        <div><p className="flex items-center gap-2 text-sm text-ember"><AlertTriangle className="h-4 w-4" /> CRITICAL ALERT — Dust storm</p><p className="mt-1 text-xs text-muted-foreground">Solar arrays offline. Power reserves damaged. Shield integrity falling. React now.</p></div>
+        <Button variant="outline" size="sm" onClick={onResolve} disabled={disabled}><Check /> Secure habitat</Button>
+      </div>}
       <div className="flex flex-wrap items-center gap-3">
         {actions.map(({ key, label, Icon, hint }) => (
           <Button key={key} variant="outline" aria-pressed={commands[key]} disabled={disabled} title={hint} onClick={() => onToggle(key)} className={`h-12 min-w-40 flex-1 justify-between gap-3 ${commands[key] ? "border-telemetry/50 bg-telemetry/10 text-telemetry" : "text-muted-foreground"}`}>
@@ -31,10 +35,6 @@ export function CommandDeck({ commands, disabled, crisis, onToggle, onTest, onRe
         ))}
         <Button variant="ghost" size="sm" disabled={disabled || crisis} onClick={onTest} title="Judge preview: trigger a dust storm instantly" className="text-xs text-muted-foreground"><FlaskConical /> Test crisis</Button>
       </div>
-      {crisis && <div role="alert" className="mt-4 flex flex-wrap items-center justify-between gap-4 border-l-2 border-destructive bg-destructive/10 px-4 py-3">
-        <div><p className="flex items-center gap-2 text-sm text-ember"><AlertTriangle className="h-4 w-4" /> Dust storm — test crisis</p><p className="mt-1 text-xs text-muted-foreground">Solar arrays offline. Power reserves damaged. Shield integrity falling.</p></div>
-        <Button variant="outline" size="sm" onClick={onResolve} disabled={disabled}><Check /> Secure habitat</Button>
-      </div>}
     </section>
   );
 }

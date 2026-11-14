@@ -7,7 +7,9 @@ import { MISSION_SOLS, missionClock, playMissionTap } from "@/lib/mission";
 import landscape from "@/assets/colony-landscape.jpg";
 import badge from "@/assets/nasa-space-apps.png.asset.json";
 import { CommandDeck } from "@/components/command-deck";
-import { advanceResources, INITIAL_COMMANDS, INITIAL_RESOURCES, triggerTestCrisis, type Commands } from "@/lib/survival";
+import { advanceResources, hasDepletedResource, missionOutcome, INITIAL_COMMANDS, INITIAL_RESOURCES, triggerTestCrisis, type Commands } from "@/lib/survival";
+import { prepareMissionAudio, playMissionSound } from "@/lib/mission-audio";
+import { MissionEnding } from "@/components/mission-ending";
 
 export const Route = createFileRoute("/colony")({
   validateSearch: (s: Record<string, unknown>) => ({ name: typeof s["name"] === "string" ? s["name"] : "Commander" }),
@@ -44,6 +46,31 @@ function Colony() {
   const [transitionSol, setTransitionSol] = useState<number | null>(null);
   const lastElapsed = useRef(0);
   const lastCompleted = useRef(0);
+  const [appliedElapsed, setAppliedElapsed] = useState(0);
+  const [depleted, setDepleted] = useState(false);
+  const [outcome, setOutcome] = useState<"win" | "fail" | null>(null);
+  const [endingOpen, setEndingOpen] = useState(false);
+
+  useEffect(() => {
+    if (hasDepletedResource(telemetry)) setDepleted(true);
+  }, [telemetry]);
+
+  useEffect(() => {
+    if (!clock.finished || appliedElapsed < 420 || outcome !== null) return;
+    const result = missionOutcome(clock.completed, telemetry, depleted);
+    if (!result) return;
+    setOutcome(result);
+    setEndingOpen(true);
+    setCrisis(false);
+    playMissionSound(result);
+  }, [clock.finished, clock.completed, appliedElapsed, telemetry, depleted, outcome]);
+
+  useEffect(() => {
+    if (!crisis || clock.finished) return;
+    playMissionSound("warning");
+    const warning = window.setInterval(() => playMissionSound("warning"), 5000);
+    return () => window.clearInterval(warning);
+  }, [crisis, clock.finished]);
 
   useEffect(() => {
     const bounded = Math.min(elapsed, 420);
@@ -51,6 +78,7 @@ function Colony() {
     if (delta <= 0) return;
     lastElapsed.current = bounded;
     setTelemetry((current) => advanceResources(current, commands, delta, crisis));
+    setAppliedElapsed(bounded);
   }, [elapsed, commands, crisis]);
 
   useEffect(() => {
@@ -74,6 +102,7 @@ function Colony() {
   }, [startedAt, clock.finished]);
 
   const acknowledge = () => {
+    prepareMissionAudio();
     playMissionTap();
     setBriefingOpen(false);
     if (startedAt === null) setStartedAt(Date.now());
@@ -157,6 +186,8 @@ function Colony() {
           <p className="text-2xl font-semibold text-foreground">Sol {transitionSol} completed</p>
         </div>
       </div>}
+
+      {outcome !== null && <MissionEnding outcome={outcome} name={name} open={endingOpen} onClose={() => setEndingOpen(false)} />}
 
       <Dialog open={briefingOpen} onOpenChange={(open) => { if (open) setBriefingOpen(true); }}>
         <DialogContent className="w-[calc(100%-32px)] max-w-xl rounded-md border-primary/40 bg-background p-7 shadow-[var(--mission-shadow)] [&>button]:hidden" onEscapeKeyDown={(e) => e.preventDefault()} onPointerDownOutside={(e) => e.preventDefault()}>

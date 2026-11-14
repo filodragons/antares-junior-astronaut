@@ -19,3 +19,12 @@ export function advanceResources(resources: Resources, commands: Commands, secon
 export function triggerTestCrisis(resources: Resources): Resources {
   return { ...resources, power: clamp(resources.power - 20) };
 }
+
+export function hasDepletedResource(resources: Resources): boolean {
+  return Object.values(resources).some((value) => value <= 0);
+}
+
+export function missionOutcome(completedSols: number, resources: Resources, depletedDuringMission: boolean): "win" | "fail" | null {
+  if (completedSols < 7) return null;
+  return depletedDuringMission || hasDepletedResource(resources) ? "fail" : "win";
+}

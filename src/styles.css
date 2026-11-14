@@ -181,6 +181,12 @@
   100% { opacity: 0; transform: translateY(-6px); }
 }
 .sol-transition { animation: sol-fade 2.4s ease-in-out both; }
+@keyframes crisis-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--destructive) 15%, transparent); }
+  50% { box-shadow: 0 0 18px 2px color-mix(in oklch, var(--destructive) 35%, transparent); }
+}
+.crisis-warning { animation: crisis-pulse 1.5s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) {
   .sol-transition { animation: none; }
+  .crisis-warning { animation: none; }
 }

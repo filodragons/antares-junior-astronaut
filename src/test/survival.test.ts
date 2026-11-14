@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { advanceResources, INITIAL_COMMANDS, INITIAL_RESOURCES, triggerTestCrisis } from "@/lib/survival";
+import { advanceResources, missionOutcome, INITIAL_COMMANDS, INITIAL_RESOURCES, triggerTestCrisis } from "@/lib/survival";
 
 describe("Command deck", () => {
   it("MOXIE generates oxygen while drawing power", () => {
@@ -24,5 +24,21 @@ describe("Command deck", () => {
   it("resources stay between zero and one hundred", () => {
     expect(advanceResources(INITIAL_RESOURCES, INITIAL_COMMANDS, 10000, true)).toEqual({ oxygen: 0, water: 0, power: 0, shield: 0 });
     expect(advanceResources(INITIAL_RESOURCES, { moxie: true, recycler: true, solar: true, shielding: true }, 10000, false)).toEqual(INITIAL_RESOURCES);
+  });
+});
+
+describe("Seven-Sol endings", () => {
+  it("does not end the mission before seven Sols", () => {
+    expect(missionOutcome(6, INITIAL_RESOURCES, false)).toBeNull();
+    expect(missionOutcome(6, { ...INITIAL_RESOURCES, power: 0 }, true)).toBeNull();
+  });
+  it("wins after seven Sols when every resource stayed online", () => {
+    expect(missionOutcome(7, { oxygen: 1, water: 1, power: 1, shield: 1 }, false)).toBe("win");
+  });
+  it.each(["oxygen", "water", "power", "shield"] as const)("fails after seven Sols if %s is depleted", (key) => {
+    expect(missionOutcome(7, { ...INITIAL_RESOURCES, [key]: 0 }, false)).toBe("fail");
+  });
+  it("fails if a resource was depleted earlier even if later recovered", () => {
+    expect(missionOutcome(7, INITIAL_RESOURCES, true)).toBe("fail");
   });
 });

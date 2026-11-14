@@ -17,3 +17,9 @@
 - [x] Add a bottom command deck with working survival toggles.
 - [x] Add an instant crisis test and recovery action.
 - [x] Verify controls, crisis recovery, Sol transitions, and mobile layout.
+
+# Final mission states
+
+- [x] Add pulsing dark-red crisis banner above the controls and warning audio.
+- [x] Add seven-Sol victory/failure endings and matching sound effects.
+- [x] Verify both endings and crisis recovery without changing existing layout.
