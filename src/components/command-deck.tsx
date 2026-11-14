@@ -1,6 +1,7 @@
 import { FlaskConical, ShieldCheck, Wind, Droplets, Zap, Check, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Commands } from "@/lib/survival";
+import type { ReactNode } from "react";
 
 const actions = [
   { key: "moxie", label: "MOXIE", Icon: Wind, hint: "Generate oxygen; consumes power" },
@@ -9,13 +10,14 @@ const actions = [
   { key: "shielding", label: "Radiation shield", Icon: ShieldCheck, hint: "Restore shielding; consumes power" },
 ] as const;
 
-export function CommandDeck({ commands, disabled, crisis, onToggle, onTest, onResolve }: {
+export function CommandDeck({ commands, disabled, crisis, onToggle, onTest, onResolve, alert }: {
   commands: Commands;
   disabled: boolean;
   crisis: boolean;
   onToggle: (key: keyof Commands) => void;
   onTest: () => void;
   onResolve: () => void;
+  alert?: ReactNode;
 }) {
   return (
     <section aria-label="Command deck" className="border-t border-border bg-background px-6 py-5 md:px-10">
@@ -23,6 +25,7 @@ export function CommandDeck({ commands, disabled, crisis, onToggle, onTest, onRe
         <h2 className="text-sm uppercase tracking-widest">Command deck</h2>
         <span className="text-xs text-muted-foreground">{disabled ? "Standby" : "Daily operations"}</span>
       </div>
+      {alert}
       {crisis && <div role="alert" className="crisis-warning mb-4 flex flex-wrap items-center justify-between gap-4 border-l-2 border-destructive bg-destructive/20 px-4 py-3 backdrop-blur-xl">
         <div><p className="flex items-center gap-2 text-sm text-ember"><AlertTriangle className="h-4 w-4" /> CRITICAL ALERT — Dust storm</p><p className="mt-1 text-xs text-muted-foreground">Solar arrays offline. Power reserves damaged. Shield integrity falling. React now.</p></div>
         <Button variant="outline" size="sm" onClick={onResolve} disabled={disabled}><Check /> Secure habitat</Button>

@@ -10,6 +10,8 @@ import { CommandDeck } from "@/components/command-deck";
 import { advanceResources, hasDepletedResource, missionOutcome, INITIAL_COMMANDS, INITIAL_RESOURCES, triggerTestCrisis, type Commands } from "@/lib/survival";
 import { prepareMissionAudio, playMissionSound } from "@/lib/mission-audio";
 import { MissionEnding } from "@/components/mission-ending";
+import { SolCrisisAlert } from "@/components/sol-crisis-alert";
+import { applyCrisisChoice, pendingSolCrisis, type CrisisId, type ChoiceId } from "@/lib/sol-crises";
 
 export const Route = createFileRoute("/colony")({
   validateSearch: (s: Record<string, unknown>) => ({ name: typeof s["name"] === "string" ? s["name"] : "Commander" }),
@@ -50,6 +52,29 @@ function Colony() {
   const [depleted, setDepleted] = useState(false);
   const [outcome, setOutcome] = useState<"win" | "fail" | null>(null);
   const [endingOpen, setEndingOpen] = useState(false);
+  const [activeSolCrisis, setActiveSolCrisis] = useState<CrisisId | null>(null);
+  const [resolvedCrises, setResolvedCrises] = useState<CrisisId[]>([]);
+  const alertRef = useRef<HTMLDivElement>(null);
+  const dustActive = crisis || activeSolCrisis === "dust";
+
+  useEffect(() => {
+    if (startedAt === null || clock.finished || activeSolCrisis !== null) return;
+    const next = pendingSolCrisis(clock.currentSol, resolvedCrises);
+    if (next !== null) setActiveSolCrisis(next);
+  }, [startedAt, clock.finished, clock.currentSol, activeSolCrisis, resolvedCrises]);
+
+  useEffect(() => {
+    if (activeSolCrisis === null || briefingOpen) return;
+    alertRef.current?.scrollIntoView({ block: "center", behavior: "instant" });
+  }, [activeSolCrisis, briefingOpen]);
+
+  const chooseCrisis = (choice: ChoiceId) => {
+    if (activeSolCrisis === null || clock.finished) return;
+    playMissionTap();
+    setTelemetry((current) => applyCrisisChoice(current, activeSolCrisis, choice));
+    setResolvedCrises((current) => [...current, activeSolCrisis]);
+    setActiveSolCrisis(null);
+  };
 
   useEffect(() => {
     if (hasDepletedResource(telemetry)) setDepleted(true);
@@ -62,24 +87,25 @@ function Colony() {
     setOutcome(result);
     setEndingOpen(true);
     setCrisis(false);
+    setActiveSolCrisis(null);
     playMissionSound(result);
   }, [clock.finished, clock.completed, appliedElapsed, telemetry, depleted, outcome]);
 
   useEffect(() => {
-    if (!crisis || clock.finished) return;
+    if ((!crisis && activeSolCrisis === null) || clock.finished) return;
     playMissionSound("warning");
     const warning = window.setInterval(() => playMissionSound("warning"), 5000);
     return () => window.clearInterval(warning);
-  }, [crisis, clock.finished]);
+  }, [crisis, activeSolCrisis, clock.finished]);
 
   useEffect(() => {
     const bounded = Math.min(elapsed, 420);
     const delta = bounded - lastElapsed.current;
     if (delta <= 0) return;
     lastElapsed.current = bounded;
-    setTelemetry((current) => advanceResources(current, commands, delta, crisis));
+    setTelemetry((current) => advanceResources(current, commands, delta, dustActive));
     setAppliedElapsed(bounded);
-  }, [elapsed, commands, crisis]);
+  }, [elapsed, commands, dustActive]);
 
   useEffect(() => {
     if (clock.completed === 0 || clock.completed <= lastCompleted.current) return;
@@ -173,7 +199,7 @@ function Colony() {
         </aside>
       </div>
 
-      <CommandDeck commands={commands} disabled={startedAt === null || clock.finished} crisis={crisis} onToggle={toggleCommand} onTest={() => {
+      <CommandDeck commands={commands} disabled={startedAt === null || clock.finished} crisis={crisis} alert={activeSolCrisis !== null && !clock.finished ? <div ref={alertRef}><SolCrisisAlert crisis={activeSolCrisis} onChoose={chooseCrisis} /></div> : null} onToggle={toggleCommand} onTest={() => {
         if (startedAt === null || clock.finished || crisis) return;
         playMissionTap();
         setTelemetry(triggerTestCrisis);

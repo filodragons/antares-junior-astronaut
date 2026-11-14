@@ -33,3 +33,4 @@ use the editor.
 - Keep survival calculations in a pure browser-safe module and append command controls after the existing dashboard; this isolates testable resource trade-offs without repositioning the header or HUD.
 - Evaluate endings only after final resource telemetry is applied, retaining any depletion during the run; this prevents stale victory results at the final Sol boundary.
 - Unlock a shared browser audio context on briefing acknowledgement; this supports later crisis and ending sounds without autoplay assumptions.
+- Define scheduled Sol crises and choice resource deltas in a pure module, rendering them in the command deck alert slot; this keeps event sequencing testable and preserves the HUD layout.

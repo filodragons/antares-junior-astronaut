@@ -23,3 +23,9 @@
 - [x] Add pulsing dark-red crisis banner above the controls and warning audio.
 - [x] Add seven-Sol victory/failure endings and matching sound effects.
 - [x] Verify both endings and crisis recovery without changing existing layout.
+
+# Phase 1
+
+- [x] Add Communication Blackout and Dust Storm choices above command controls.
+- [x] Trigger each crisis in its Sol and update HUD resources on selection.
+- [x] Test every choice and verify the full entry-to-Sol-2 flow.
