@@ -11,6 +11,8 @@ import { advanceResources, hasDepletedResource, missionOutcome, INITIAL_COMMANDS
 import { prepareMissionAudio, playMissionSound } from "@/lib/mission-audio";
 import { MissionEnding } from "@/components/mission-ending";
 import { SolCrisisAlert } from "@/components/sol-crisis-alert";
+import { PresenterToolbar } from "@/components/presenter-toolbar";
+import { presenterScenario } from "@/lib/presenter";
 import { evaluateDecision, dangerBreach, tacticalEnding, pendingSolCrisis, type DecisionRecord, type CrisisId, type ChoiceId } from "@/lib/sol-crises";
 
 export const Route = createFileRoute("/colony")({
@@ -60,12 +62,62 @@ function Colony() {
   const [resolvedCrises, setResolvedCrises] = useState<CrisisId[]>([]);
   const alertRef = useRef<HTMLDivElement>(null);
   const dustActive = crisis || activeSolCrisis === "dust";
+  const [presenterSol, setPresenterSol] = useState<number | null>(null);
+  const presenting = presenterSol !== null;
+  const savedMission = useRef<{ elapsed: number; started: boolean; commands: typeof commands; telemetry: typeof telemetry; crisis: boolean; depleted: boolean; outcome: typeof outcome; endingReason: typeof endingReason; decisions: DecisionRecord[]; activeSolCrisis: CrisisId | null; resolvedCrises: CrisisId[] } | null>(null);
+
+  const jumpToSol = (sol: number) => {
+    if (savedMission.current === null) savedMission.current = { elapsed, started: startedAt !== null, commands, telemetry, crisis, depleted, outcome, endingReason, decisions, activeSolCrisis, resolvedCrises };
+    const scenario = presenterScenario(sol);
+    prepareMissionAudio();
+    setPresenterSol(scenario.sol);
+    setBriefingOpen(false);
+    setStartedAt(Date.now() - scenario.elapsed * 1000);
+    lastElapsed.current = scenario.elapsed;
+    lastCompleted.current = scenario.sol - 1;
+    setElapsed(scenario.elapsed);
+    setAppliedElapsed(scenario.elapsed);
+    setTelemetry(scenario.resources);
+    setCommands(INITIAL_COMMANDS);
+    setCrisis(false);
+    setDepleted(false);
+    setOutcome(null);
+    setEndingReason(null);
+    setEndingOpen(false);
+    setDecisions([]);
+    setResolvedCrises(scenario.resolved);
+    setActiveSolCrisis(scenario.crisis);
+    setTransitionSol(null);
+  };
+
+  const exitPresenter = () => {
+    const saved = savedMission.current;
+    if (saved === null) return;
+    lastElapsed.current = saved.elapsed;
+    lastCompleted.current = missionClock(saved.elapsed).completed;
+    setElapsed(saved.elapsed);
+    setAppliedElapsed(saved.elapsed);
+    setStartedAt(saved.started ? Date.now() - saved.elapsed * 1000 : null);
+    setCommands(saved.commands);
+    setTelemetry(saved.telemetry);
+    setCrisis(saved.crisis);
+    setDepleted(saved.depleted);
+    setOutcome(saved.outcome);
+    setEndingReason(saved.endingReason);
+    setEndingOpen(saved.outcome !== null);
+    setDecisions(saved.decisions);
+    setActiveSolCrisis(saved.activeSolCrisis);
+    setResolvedCrises(saved.resolvedCrises);
+    setTransitionSol(null);
+    setPresenterSol(null);
+    savedMission.current = null;
+  };
 
   useEffect(() => {
-    if (startedAt === null || clock.finished || gameOver || activeSolCrisis !== null) return;
+    if (presenting || startedAt === null || clock.finished || gameOver || activeSolCrisis !== null) return;
     const next = pendingSolCrisis(clock.currentSol, resolvedCrises);
     if (next !== null) setActiveSolCrisis(next);
-  }, [startedAt, clock.finished, gameOver, clock.currentSol, activeSolCrisis, resolvedCrises]);
+  }, [presenting, startedAt, clock.finished, gameOver, clock.currentSol, activeSolCrisis, resolvedCrises]);
 
   useEffect(() => {
     if (activeSolCrisis === null || briefingOpen) return;
@@ -77,7 +129,7 @@ function Colony() {
     playMissionTap();
     const decision = evaluateDecision(telemetry, activeSolCrisis, choice);
     const next = decision.after;
-    setDecisions((current) => [...current, decision]);
+    if (!presenting) setDecisions((current) => [...current, decision]);
     setTelemetry(next);
     setResolvedCrises((current) => [...current, activeSolCrisis]);
     setActiveSolCrisis(null);
@@ -105,7 +157,7 @@ function Colony() {
   }, [telemetry, startedAt, outcome]);
 
   useEffect(() => {
-    if (!clock.finished || appliedElapsed < 420 || outcome !== null) return;
+    if (presenting || !clock.finished || appliedElapsed < 420 || outcome !== null) return;
     const base = missionOutcome(clock.completed, telemetry, depleted);
     if (!base) return;
     if (dangerBreach(telemetry)) return;
@@ -119,24 +171,24 @@ function Colony() {
     setCrisis(false);
     setActiveSolCrisis(null);
     playMissionSound(result);
-  }, [clock.finished, clock.completed, appliedElapsed, telemetry, depleted, outcome, decisions]);
+  }, [presenting, clock.finished, clock.completed, appliedElapsed, telemetry, depleted, outcome, decisions]);
 
   useEffect(() => {
-    if ((!crisis && activeSolCrisis === null) || clock.finished || gameOver) return;
+    if (presenting || (!crisis && activeSolCrisis === null) || clock.finished || gameOver) return;
     playMissionSound("warning");
     const warning = window.setInterval(() => playMissionSound("warning"), 5000);
     return () => window.clearInterval(warning);
-  }, [crisis, activeSolCrisis, clock.finished, gameOver]);
+  }, [presenting, crisis, activeSolCrisis, clock.finished, gameOver]);
 
   useEffect(() => {
-    if (gameOver) return;
+    if (presenting || gameOver) return;
     const bounded = Math.min(elapsed, 420);
     const delta = bounded - lastElapsed.current;
     if (delta <= 0) return;
     lastElapsed.current = bounded;
     setTelemetry((current) => advanceResources(current, commands, delta, dustActive));
     setAppliedElapsed(bounded);
-  }, [elapsed, commands, dustActive, gameOver]);
+  }, [presenting, elapsed, commands, dustActive, gameOver]);
 
   useEffect(() => {
     if (clock.completed === 0 || clock.completed <= lastCompleted.current) return;
@@ -153,10 +205,10 @@ function Colony() {
   };
 
   useEffect(() => {
-    if (startedAt === null || clock.finished || gameOver) return;
+    if (presenting || startedAt === null || clock.finished || gameOver) return;
     const interval = window.setInterval(() => setElapsed(Math.floor((Date.now() - startedAt) / 1000)), 250);
     return () => window.clearInterval(interval);
-  }, [startedAt, clock.finished, gameOver]);
+  }, [presenting, startedAt, clock.finished, gameOver]);
 
   const acknowledge = () => {
     prepareMissionAudio();
@@ -230,7 +282,8 @@ function Colony() {
         </aside>
       </div>
 
-      <CommandDeck commands={commands} disabled={startedAt === null || clock.finished || gameOver} crisis={crisis} alert={activeSolCrisis !== null && !clock.finished && !gameOver ? <div ref={alertRef}><SolCrisisAlert crisis={activeSolCrisis} onChoose={chooseCrisis} /></div> : null} onToggle={toggleCommand} onTest={() => {
+      <PresenterToolbar active={presenting} sol={clock.currentSol} onJump={jumpToSol} onExit={exitPresenter} />
+      <CommandDeck commands={commands} disabled={startedAt === null || clock.finished || gameOver} crisis={crisis} alert={activeSolCrisis !== null && !clock.finished && !gameOver ? <div ref={alertRef}><SolCrisisAlert crisis={activeSolCrisis} onChoose={chooseCrisis} presenter={presenting} /></div> : null} onToggle={toggleCommand} onTest={() => {
         if (startedAt === null || clock.finished || gameOver || crisis) return;
         playMissionTap();
         setTelemetry(triggerTestCrisis);

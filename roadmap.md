@@ -47,3 +47,9 @@
 - [ ] Vary crisis option roles and evaluate content against current reserves.
 - [ ] Enforce immediate 40% failure on all resource changes and evaluate all seven decisions.
 - [ ] Test strategic scoring and verify full missions and action lockout.
+
+# Presenter mode
+
+- [x] Add paused, reversible demonstration jumps to all seven Sols.
+- [x] Show Sol 3 radiation evidence, simulated environmental metrics, and NASA sources.
+- [x] Verify Sol jumps, choices, mission restoration, and mobile layout.
