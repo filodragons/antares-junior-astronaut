@@ -31,7 +31,7 @@ use the editor.
 
 - Keep mission timing in the pure browser-safe mission module and start its clock after briefing acknowledgement; this makes Sol boundaries testable without storing session-only game state.
 - Keep survival calculations in a pure browser-safe module and append command controls after the existing dashboard; this isolates testable resource trade-offs without repositioning the header or HUD.
-- Evaluate endings only after final resource telemetry is applied, retaining any depletion during the run; this prevents stale victory results at the final Sol boundary.
+- Evaluate endings only after final resource telemetry and every scheduled decision are applied, retaining any depletion during the run and allowing unanswered choices after the timer ends; this prevents stale scores and forced losses at the final Sol boundary.
 - Unlock a shared browser audio context on briefing acknowledgement; this supports later crisis and ending sounds without autoplay assumptions.
 - Define scheduled Sol crises and choice resource deltas in a pure module, rendering them in the command deck alert slot; this keeps event sequencing testable and preserves the HUD layout.
 - Keep crisis failure conditions (a resource threshold that can zero a resource) as data on the choice inside the pure crisis module; this keeps risky endings testable without touching the alert UI.

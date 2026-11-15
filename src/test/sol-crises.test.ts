@@ -126,14 +126,19 @@ describe("danger threshold and tactical ending", () => {
     expect(tacticalEnding(decisions).outcome).toBe("win");
     expect(tacticalEnding(decisions).wisdom).toBe(100);
   });
-  it("fails a cumulative path of poor tactical trade-offs", () => {
+  it("fails a complete path scoring below 50 with costly trade-offs", () => {
     const decisions = (Object.keys(SOL_CRISES) as CrisisId[]).map((id) => {
       const a = evaluateDecision(INITIAL_RESOURCES, id, "A");
       const b = evaluateDecision(INITIAL_RESOURCES, id, "B");
       return a.wisdom <= b.wisdom ? a : b;
     });
-    expect(tacticalEnding(decisions).wisdom).toBeLessThan(70);
+    expect(tacticalEnding(decisions).wisdom).toBe(46);
     expect(tacticalEnding(decisions).outcome).toBe("fail");
+  });
+  it.each([[80, "win"], [51, "win"], [50, "fail"], [49, "fail"]] as const)("records %i/100 as %s", (wisdom, outcome) => {
+    const decisions = (Object.keys(SOL_CRISES) as CrisisId[]).map((id) => ({ ...evaluateDecision(INITIAL_RESOURCES, id, "A"), wisdom }));
+    expect(tacticalEnding(decisions).wisdom).toBe(wisdom);
+    expect(tacticalEnding(decisions).outcome).toBe(outcome);
   });
   it("requires all seven unique crises for a balanced ending", () => {
     expect(tacticalEnding(Array.from({ length: 7 }, () => evaluateDecision(INITIAL_RESOURCES, "comms", "A"))).outcome).toBe("fail");

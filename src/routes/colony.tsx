@@ -114,7 +114,7 @@ function Colony() {
   };
 
   useEffect(() => {
-    if (presenting || startedAt === null || clock.finished || gameOver || activeSolCrisis !== null) return;
+    if (presenting || startedAt === null || gameOver || activeSolCrisis !== null) return;
     const next = pendingSolCrisis(clock.currentSol, resolvedCrises);
     if (next !== null) setActiveSolCrisis(next);
   }, [presenting, startedAt, clock.finished, gameOver, clock.currentSol, activeSolCrisis, resolvedCrises]);
@@ -125,7 +125,7 @@ function Colony() {
   }, [activeSolCrisis, briefingOpen]);
 
   const chooseCrisis = (choice: ChoiceId) => {
-    if (activeSolCrisis === null || clock.finished || gameOver) return;
+    if (activeSolCrisis === null || gameOver) return;
     playMissionTap();
     const decision = evaluateDecision(telemetry, activeSolCrisis, choice);
     const next = decision.after;
@@ -158,6 +158,9 @@ function Colony() {
 
   useEffect(() => {
     if (presenting || !clock.finished || appliedElapsed < 420 || outcome !== null) return;
+    // The timer may finish while a crisis is unanswered. Never finalize a
+    // partial score or lock out the last decision at the final Sol boundary.
+    if (activeSolCrisis !== null || pendingSolCrisis(MISSION_SOLS, resolvedCrises) !== null) return;
     const base = missionOutcome(clock.completed, telemetry, depleted);
     if (!base) return;
     if (dangerBreach(telemetry)) return;
@@ -171,7 +174,7 @@ function Colony() {
     setCrisis(false);
     setActiveSolCrisis(null);
     playMissionSound(result);
-  }, [presenting, clock.finished, clock.completed, appliedElapsed, telemetry, depleted, outcome, decisions]);
+  }, [presenting, clock.finished, clock.completed, appliedElapsed, telemetry, depleted, outcome, decisions, activeSolCrisis, resolvedCrises]);
 
   useEffect(() => {
     if (presenting || (!crisis && activeSolCrisis === null) || clock.finished || gameOver) return;
@@ -283,7 +286,7 @@ function Colony() {
       </div>
 
       <PresenterToolbar active={presenting} sol={clock.currentSol} onJump={jumpToSol} onExit={exitPresenter} />
-      <CommandDeck commands={commands} disabled={startedAt === null || clock.finished || gameOver} crisis={crisis} alert={activeSolCrisis !== null && !clock.finished && !gameOver ? <div ref={alertRef}><SolCrisisAlert crisis={activeSolCrisis} onChoose={chooseCrisis} presenter={presenting} /></div> : null} onToggle={toggleCommand} onTest={() => {
+      <CommandDeck commands={commands} disabled={startedAt === null || clock.finished || gameOver} crisis={crisis} alert={activeSolCrisis !== null && !gameOver ? <div ref={alertRef}><SolCrisisAlert crisis={activeSolCrisis} onChoose={chooseCrisis} presenter={presenting} /></div> : null} onToggle={toggleCommand} onTest={() => {
         if (startedAt === null || clock.finished || gameOver || crisis) return;
         playMissionTap();
         setTelemetry(triggerTestCrisis);

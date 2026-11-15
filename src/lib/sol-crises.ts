@@ -104,7 +104,7 @@ export function dangerBreach(resources: Resources): { resource: keyof Resources;
 }
 
 export type DecisionRecord = { crisis: CrisisId; strategy: string; before: Resources; after: Resources; wisdom: number };
-export const BALANCED_WISDOM = 70;
+export const BALANCED_WISDOM = 50;
 
 /** Content, not button position, defines the strain imposed on habitat systems. */
 export function strategyStrain(label: string): number {
@@ -136,5 +136,5 @@ export function tacticalEnding(decisions: DecisionRecord[]): { outcome: "win" | 
   const wisdom = decisions.length ? Math.round(decisions.reduce((sum, record) => sum + record.wisdom, 0) / decisions.length) : 0;
   const complete = new Set(decisions.map((record) => record.crisis)).size === Object.keys(SOL_CRISES).length;
   const weakest = decisions.reduce<DecisionRecord | null>((lowest, record) => lowest === null || record.wisdom < lowest.wisdom ? record : lowest, null);
-  return { outcome: complete && wisdom >= BALANCED_WISDOM ? "win" : "fail", wisdom, weakest };
+  return { outcome: complete && wisdom > BALANCED_WISDOM ? "win" : "fail", wisdom, weakest };
 }
